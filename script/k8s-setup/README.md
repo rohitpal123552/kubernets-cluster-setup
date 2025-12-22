@@ -1,7 +1,3 @@
-
----
-
-```markdown
 ## Kubernetes Cluster Setup (Single-node & Multi-node)
 
 This repository provides an **automated Bash-based setup** for installing a
@@ -14,7 +10,7 @@ The setup supports:
 - ✅ Passwordless sudo
 - ✅ Pre-flight checks
 - ✅ SSH-based worker bootstrap (run once from master)
-```
+
 ---
 
 ## Directory Structure
