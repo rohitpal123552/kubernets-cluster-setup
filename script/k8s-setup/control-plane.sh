@@ -21,7 +21,17 @@ init_control_plane() {
 
     log "Installing Calico CNI"
     kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+    # kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
 
     log "Join command:"
     kubeadm token create --print-join-command
+
+    sleep 30s
+
+    echo "Allowing pod scheduling on control-plane (for single-node cluster)..."
+    kubectl taint nodes --all node-role.kubernetes.io/control-plane- || true
+
+    echo "Kubernetes v${K8S_VERSION} setup complete!"
+    kubectl get nodes -o wide
+
 }
