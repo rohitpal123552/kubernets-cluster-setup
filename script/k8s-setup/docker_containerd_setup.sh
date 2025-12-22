@@ -59,7 +59,7 @@ detect_env() {
 remove_old_docker() {
   log "Cleaning any existing Docker and containerd installations..."
 
-  log "Unhold  Containerd and Docker packages"
+  log "Unhold Containerd and Docker packages"
   sudo apt-mark unhold containerd.io docker-ce docker-ce-cli docker-buildx-plugin docker-compose-plugin
 
   # Stop services if present

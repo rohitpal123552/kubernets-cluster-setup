@@ -2,7 +2,7 @@
 ---
 
 ```markdown
-# Kubernetes Cluster Setup (Single-node & Multi-node)
+## Kubernetes Cluster Setup (Single-node & Multi-node)
 
 This repository provides an **automated Bash-based setup** for installing a
 **Kubernetes v1.32.x cluster** on **Ubuntu** using **kubeadm** and
@@ -14,13 +14,12 @@ The setup supports:
 - ✅ Passwordless sudo
 - ✅ Pre-flight checks
 - ✅ SSH-based worker bootstrap (run once from master)
-
+```
 ---
 
 ## Directory Structure
 
 ```
-
 k8s-setup/
 ├── common.sh           # Common setup for all nodes
 ├── control-plane.sh    # Control-plane (master) setup
@@ -152,19 +151,5 @@ Expected:
 
 ---
 
-## Cleanup (Manual)
-
-If needed, reset a node:
-
-```bash
-sudo kubeadm reset -f
-sudo rm -rf ~/.kube
-```
-
----
-
 Happy Kubernetes learning 🚀
 
-````
-
----
