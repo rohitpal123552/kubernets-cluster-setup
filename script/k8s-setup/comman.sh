@@ -3,7 +3,8 @@ set -Eeuo pipefail
 
 CRI_VERSION="1.32"
 K8S_VERSION="1.32.1"
-CONTAINERD_VERSION="1.7.25"
+# CONTAINERD_VERSION="1.7.25"
+CONTAINERD_VERSION="1.7.25-1"
 
 log() {
     echo "[COMMON] $(date '+%F %T') - $1"
@@ -78,23 +79,57 @@ EOF
 }
 
 install_containerd() {
-    log "Installing containerd ${CONTAINERD_VERSION}"
-    sudo apt update
-    sudo apt install -y curl tar
+    log "Validating containerd installation..."
 
-    curl -LO https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
-    sudo tar Cxzvf /usr/local containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+    # 1) Check if installed
+    if dpkg-query -W -f='${Status} ${Version}\n' containerd.io 2>/dev/null | grep -q "install ok installed"; then 
+        echo "containerd.io already installed; skipping install."
+    else
+        sudo apt-get update -y
+        sudo apt --yes install containerd.io=$(apt-cache madison containerd.io | grep -F "$CONTAINERD_VERSION" | head -1 | awk '{print $3}')
 
-    sudo mkdir -p /etc/containerd
-    containerd config default | sudo tee /etc/containerd/config.toml
-    sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+        # 2) Configure default config with SystemdCgroup=true
+        sudo mkdir -p /etc/containerd
+        containerd config default | tee /etc/containerd/config.toml
+        sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+        
+        # 3) Ensure service enabled and running
+        sudo systemctl enable containerd
+        sudo systemctl daemon-reload
+        sudo systemctl restart containerd
+        sudo systemctl --no-pager --full status containerd -l || {
+            log "containerd service failed to start"; exit 1;
+        }
+    fi
 
-    sudo curl -Lo /etc/systemd/system/containerd.service \
-      https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+    log "containerd validation/configuration complete."
 
-    sudo systemctl daemon-reexec
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now containerd
+    # sudo apt install -y curl tar
+
+    # curl -LO https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+    # sudo tar Cxzvf /usr/local containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
+
+    # sudo mkdir -p /etc/containerd
+    # containerd config default | sudo tee /etc/containerd/config.toml
+    # sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+    # sudo curl -Lo /etc/systemd/system/containerd.service \
+    #   https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+
+    # sudo systemctl daemon-reexec
+    # sudo systemctl daemon-reload
+    # sudo systemctl enable --now containerd
+}
+
+configure_crictl_for_containerd() {
+  log "Configure crictl to use containerd..."
+  sudo tee /etc/crictl.yaml >/dev/null <<'EOF'
+runtime-endpoint: unix:///run/containerd/containerd.sock
+image-endpoint: unix:///run/containerd/containerd.sock
+timeout: 30
+debug: false
+EOF
+  log "crictl configured to use containerd."
 }
 
 install_kubernetes() {
@@ -121,6 +156,7 @@ common_setup() {
     disable_swap
     load_kernel_modules
     set_sysctl_params
-    # install_containerd
+    install_containerd
+    configure_crictl_for_containerd
     install_kubernetes
 }
